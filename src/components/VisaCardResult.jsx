@@ -4,20 +4,34 @@ import { ArrowLeft, Check } from 'lucide-react';
 export default function VisaCardResult({ data, onClose }) {
   if (!data) return null;
 
-  // Construct backend URL base for uploaded images
-  const SERVER_URL = 'http://localhost:5000';
+  // 1. Get Live Backend URL dynamically from Netlify environment variable
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
-  const photoUrl = data.photoUrl 
-    ? `${SERVER_URL}${data.photoUrl}` 
-    : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300';
+  // 2. Helper function to format image URLs safely
+  const getImageUrl = (path, fallback = null) => {
+    if (!path) return fallback;
+    
+    // If it's already a full HTTP/HTTPS URL, return it directly
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      // Replace legacy localhost database strings with live API base URL
+      if (path.includes('localhost:5000')) {
+        return path.replace('http://localhost:5000', API_BASE_URL);
+      }
+      return path;
+    }
 
-  const attachedDocUrl = data.attachedDocUrl 
-    ? `${SERVER_URL}${data.attachedDocUrl}` 
-    : null;
+    // Standardize leading slash for relative backend paths (/uploads/...)
+    const formattedPath = path.startsWith('/') ? path : `/${path}`;
+    return `${API_BASE_URL}${formattedPath}`;
+  };
 
-  const visaCardImageUrl = data.visaCardImageUrl 
-    ? `${SERVER_URL}${data.visaCardImageUrl}` 
-    : null;
+  const photoUrl = getImageUrl(
+    data.photoUrl, 
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300'
+  );
+
+  const attachedDocUrl = getImageUrl(data.attachedDocUrl);
+  const visaCardImageUrl = getImageUrl(data.visaCardImageUrl);
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
@@ -189,7 +203,6 @@ export default function VisaCardResult({ data, onClose }) {
             ) : (
               /* High-Fidelity Fallback Graphic Card */
               <div className="bg-[#f2f6f9] border border-amber-300/60 rounded-xl p-5 shadow-md relative overflow-hidden text-slate-800">
-                {/* Header Graphic */}
                 <div className="flex justify-between items-start border-b border-amber-200/80 pb-3 mb-4">
                   <div>
                     <h4 className="text-xs font-extrabold tracking-wider text-blue-950">KUWAIT MINISTRY</h4>
@@ -206,7 +219,6 @@ export default function VisaCardResult({ data, onClose }) {
                   </div>
                 </div>
 
-                {/* Card Fields Body */}
                 <div className="grid grid-cols-12 gap-3 text-[10px]">
                   <div className="col-span-4 space-y-2">
                     <div>
@@ -227,7 +239,6 @@ export default function VisaCardResult({ data, onClose }) {
                     </div>
                   </div>
 
-                  {/* Center Photo & Badge */}
                   <div className="col-span-4 flex flex-col items-center justify-start gap-1">
                     <div className="w-20 h-24 rounded border border-slate-300 overflow-hidden shadow-xs bg-slate-200">
                       <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
@@ -257,13 +268,11 @@ export default function VisaCardResult({ data, onClose }) {
                   </div>
                 </div>
 
-                {/* Machine Readable Zone (MRZ) */}
                 <div className="mt-4 pt-2 border-t border-slate-200/80 font-mono text-[9px] tracking-wider text-slate-600 break-all leading-tight">
                   <p>V&lt;MLSMABRE&lt;SLESHI&lt;MULUYE&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</p>
                   <p>EQ17230070ETH0303030M2910190&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</p>
                 </div>
 
-                {/* Bottom Footer Ribbon */}
                 <div className="mt-3 pt-2 border-t border-amber-200/80 flex items-center justify-between text-[9px]">
                   <span className="font-semibold text-slate-600">KUWAIT MINISTRY OF INTERIOR • وزارة الداخلية الكويتية</span>
                   <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded border border-emerald-300">
