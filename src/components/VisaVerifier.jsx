@@ -6,9 +6,6 @@ import {
 } from 'lucide-react';
 import VisaCardResult from './VisaCardResult';
 
-// Base API URL from Environment Variables (fallback to local if not set)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-
 const slides = [
   {
     title: "State Minister",
@@ -40,7 +37,7 @@ export default function VisaVerifier() {
   // Admin Auth & Modal States
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(!!localStorage.getItem('adminToken'));
-  const [adminCredentials, setAdminCredentials] = useState({ username: '', password: '' });
+  const [adminCredentials, setAdminCredentials] = useState({ email: '', password: '' });
   const [adminError, setAdminError] = useState('');
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -57,7 +54,7 @@ export default function VisaVerifier() {
     setErrorMsg('');
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/visa/verify`, { passcode });
+      const response = await axios.post('http://localhost:5000/api/visa/verify', { passcode });
       if (response.data.success) {
         setVisaData(response.data.data);
         setIsModalOpen(true);
@@ -73,16 +70,16 @@ export default function VisaVerifier() {
     e.preventDefault();
     setAdminError('');
     try {
-      // Points to correct admin route and sends 'username'
-      const res = await axios.post(`${API_BASE_URL}/api/visa/admin/login`, adminCredentials);
+      const res = await axios.post('http://localhost:5000/api/auth/login', adminCredentials);
       if (res.data.success) {
-        localStorage.setItem('adminToken', 'admin-auth-token');
+        // Save token to localStorage
+        localStorage.setItem('adminToken', res.data.data.token);
         setIsAdminLoggedIn(true);
         setIsAdminLoginOpen(false);
-        setAdminCredentials({ username: '', password: '' });
+        setAdminCredentials({ email: '', password: '' });
       }
     } catch (err) {
-      setAdminError(err.response?.data?.message || 'Invalid admin username or password.');
+      setAdminError(err.response?.data?.message || 'Invalid admin email or password.');
     }
   };
 
@@ -172,6 +169,7 @@ export default function VisaVerifier() {
           ))}
         </div>
 
+        {/* Carousel Backdrop Card */}
         <div className="absolute inset-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center pointer-events-none">
           <div className="bg-white/85 backdrop-blur-md p-8 rounded-2xl max-w-md border border-white/40 shadow-xl pointer-events-auto">
             <h2 className="text-3xl font-bold text-blue-950 mb-1">{slides[currentSlide].title}</h2>
@@ -184,6 +182,7 @@ export default function VisaVerifier() {
           </div>
         </div>
 
+        {/* Slider Nav Buttons */}
         <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow flex items-center justify-center text-slate-800">
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -191,6 +190,7 @@ export default function VisaVerifier() {
           <ChevronRight className="w-5 h-5" />
         </button>
 
+        {/* Dots */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
           {slides.map((_, i) => (
             <button key={i} onClick={() => setCurrentSlide(i)} className={`h-2.5 rounded-full transition-all ${currentSlide === i ? 'w-8 bg-blue-700' : 'w-2.5 bg-white/70'}`} />
@@ -366,6 +366,7 @@ export default function VisaVerifier() {
       {/* SECTION 7: EXECUTIVE STATEMENT & CARDS */}
       <section id="about" className="py-16 bg-slate-50">
         <div className="max-w-6xl mx-auto px-4 space-y-12">
+          {/* Executive Statement */}
           <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-xs">
             <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mb-4">
               "Your expertise will add value to the workplace and support ongoing progress."
@@ -374,6 +375,7 @@ export default function VisaVerifier() {
             <p className="text-xs text-slate-400">CEO</p>
           </div>
 
+          {/* 3 Blue Feature Cards */}
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-blue-700 text-white p-6 rounded-2xl flex flex-col justify-between h-48">
               <div>
@@ -406,6 +408,7 @@ export default function VisaVerifier() {
             </div>
           </div>
 
+          {/* Call-to-action Banner */}
           <div className="border-2 border-blue-700 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
             <div>
               <h3 className="text-2xl font-bold text-blue-950">Join Us Today</h3>
@@ -501,11 +504,11 @@ export default function VisaVerifier() {
 
             <form onSubmit={handleAdminLogin} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Username</label>
+                <label className="block text-slate-700 font-semibold mb-1">Email</label>
                 <input 
                   type="text" 
-                  value={adminCredentials.username} 
-                  onChange={(e) => setAdminCredentials({ ...adminCredentials, username: e.target.value })} 
+                  value={adminCredentials.email} 
+                  onChange={(e) => setAdminCredentials({ ...adminCredentials, email: e.target.value })} 
                   className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none" 
                   required 
                 />
@@ -588,7 +591,7 @@ function AdminRegisterModal({ onClose, onLogout }) {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await axios.post(`${API_BASE_URL}/api/visa/register`, submitData, {
+      const res = await axios.post('http://localhost:5000/api/visa/register', submitData, {
         headers: { 
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
@@ -610,6 +613,7 @@ function AdminRegisterModal({ onClose, onLogout }) {
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-8 my-8 border border-slate-100 relative max-h-[90vh] overflow-y-auto">
+        {/* Header navigation links */}
         <div className="flex items-center justify-between mb-6 border-b pb-4 text-xs font-semibold">
           <button onClick={onClose} className="text-blue-900 hover:underline flex items-center gap-1">
             <ArrowLeft className="w-4 h-4" /> ← Back to Home
@@ -628,11 +632,13 @@ function AdminRegisterModal({ onClose, onLogout }) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          {/* Full Name */}
           <div>
             <label className="block text-slate-700 font-semibold mb-1">Full Name</label>
             <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-blue-600" />
           </div>
 
+          {/* Nationality & Access Code */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-slate-700 font-semibold mb-1">Nationality</label>
@@ -644,6 +650,7 @@ function AdminRegisterModal({ onClose, onLogout }) {
             </div>
           </div>
 
+          {/* Visa Number & Passport Number */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-slate-700 font-semibold mb-1">Visa Number</label>
@@ -655,6 +662,7 @@ function AdminRegisterModal({ onClose, onLogout }) {
             </div>
           </div>
 
+          {/* Visa Type & Occupation */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-slate-700 font-semibold mb-1">Visa Type</label>
@@ -666,6 +674,7 @@ function AdminRegisterModal({ onClose, onLogout }) {
             </div>
           </div>
 
+          {/* Gender & Birth Date */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-slate-700 font-semibold mb-1">Gender</label>
@@ -680,6 +689,7 @@ function AdminRegisterModal({ onClose, onLogout }) {
             </div>
           </div>
 
+          {/* Issue Date & Expiry Date */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-slate-700 font-semibold mb-1">Issue Date</label>
@@ -691,6 +701,7 @@ function AdminRegisterModal({ onClose, onLogout }) {
             </div>
           </div>
 
+          {/* Upload Inputs */}
           <div>
             <label className="block text-slate-700 font-semibold mb-1">Applicant Photo Image (Upload from Device)</label>
             <input type="file" name="photo" onChange={handleFileChange} accept="image/*" className="w-full p-1.5 border rounded-lg border-slate-300" />
