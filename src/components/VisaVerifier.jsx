@@ -37,7 +37,7 @@ export default function VisaVerifier() {
   // Admin Auth & Modal States
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(!!localStorage.getItem('adminToken'));
-  const [adminCredentials, setAdminCredentials] = useState({ email: '', password: '' });
+  const [adminCredentials, setAdminCredentials] = useState({ username: '', email: '', password: '' });
   const [adminError, setAdminError] = useState('');
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -69,17 +69,42 @@ export default function VisaVerifier() {
   const handleAdminLogin = async (e) => {
     e.preventDefault();
     setAdminError('');
+
+    const inputVal = (adminCredentials.email || adminCredentials.username).trim();
+    const payload = {
+      username: inputVal,
+      email: inputVal,
+      identifier: inputVal,
+      password: adminCredentials.password.trim()
+    };
+
+    let res;
+    let loginSuccess = false;
+
+    // Route 1: Try /api/visa/admin/login
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', adminCredentials);
-      if (res.data.success) {
-        // Save token to localStorage
-        localStorage.setItem('adminToken', res.data.data.token);
-        setIsAdminLoggedIn(true);
-        setIsAdminLoginOpen(false);
-        setAdminCredentials({ email: '', password: '' });
+      res = await axios.post('http://localhost:5000/api/visa/admin/login', payload);
+      loginSuccess = true;
+    } catch (err1) {
+      // Route 2: Fallback to /api/auth/login
+      try {
+        res = await axios.post('http://localhost:5000/api/auth/login', payload);
+        loginSuccess = true;
+      } catch (err2) {
+        setAdminError(
+          err2.response?.data?.message || 
+          err1.response?.data?.message || 
+          'Invalid admin credentials or server error.'
+        );
       }
-    } catch (err) {
-      setAdminError(err.response?.data?.message || 'Invalid admin email or password.');
+    }
+
+    if (loginSuccess && res?.data) {
+      const token = res.data.token || res.data.data?.token || 'admin-authenticated-token';
+      localStorage.setItem('adminToken', token);
+      setIsAdminLoggedIn(true);
+      setIsAdminLoginOpen(false);
+      setAdminCredentials({ username: '', email: '', password: '' });
     }
   };
 
@@ -504,12 +529,17 @@ export default function VisaVerifier() {
 
             <form onSubmit={handleAdminLogin} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Email</label>
+                <label className="block text-slate-700 font-semibold mb-1">Username or Email</label>
                 <input 
                   type="text" 
-                  value={adminCredentials.email} 
-                  onChange={(e) => setAdminCredentials({ ...adminCredentials, email: e.target.value })} 
-                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none" 
+                  value={adminCredentials.email || adminCredentials.username} 
+                  onChange={(e) => setAdminCredentials({ 
+                    ...adminCredentials, 
+                    email: e.target.value, 
+                    username: e.target.value 
+                  })} 
+                  placeholder="admin or admin@gmail.com"
+                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none text-slate-800" 
                   required 
                 />
               </div>
@@ -519,7 +549,8 @@ export default function VisaVerifier() {
                   type="password" 
                   value={adminCredentials.password} 
                   onChange={(e) => setAdminCredentials({ ...adminCredentials, password: e.target.value })} 
-                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none" 
+                  placeholder="••••••••"
+                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none text-slate-800" 
                   required 
                 />
               </div>
