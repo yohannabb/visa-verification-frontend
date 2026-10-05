@@ -5,24 +5,27 @@ export default function VisaCardResult({ data, onClose }) {
   if (!data) return null;
 
   // 1. Get Live Backend URL dynamically from Netlify environment variable
-// NEW / FIXED:
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://visa-verification-backend.onrender.com';
+  const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'https://visa-verification-backend.onrender.com';
+  // Ensure no trailing slash
+  const API_BASE_URL = rawApiBase.replace(/\/+$/, '');
 
   // 2. Helper function to format image URLs safely
   const getImageUrl = (path, fallback = null) => {
     if (!path) return fallback;
-    
-    // If it's already a full HTTP/HTTPS URL, return it directly
-    if (path.startsWith('http://') || path.startsWith('https://')) {
-      // Replace legacy localhost database strings with live API base URL
-      if (path.includes('localhost:5000')) {
-        return path.replace('http://localhost:5000', API_BASE_URL);
-      }
-      return path;
+
+    // Normalize slashes
+    let cleanPath = path.trim();
+
+    // Remove any legacy local backend origins embedded in stored database strings
+    cleanPath = cleanPath.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, '');
+
+    // If it's still a full external URL (e.g. Unsplash, S3, Cloudinary), return as is
+    if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
+      return cleanPath;
     }
 
-    // Standardize leading slash for relative backend paths (/uploads/...)
-    const formattedPath = path.startsWith('/') ? path : `/${path}`;
+    // Standardize relative backend routes (/uploads/...)
+    const formattedPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
     return `${API_BASE_URL}${formattedPath}`;
   };
 
