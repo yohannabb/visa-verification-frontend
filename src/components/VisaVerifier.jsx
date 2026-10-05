@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { 
   ChevronLeft, ChevronRight, ArrowRight, Phone, Mail, MapPin, 
-  Menu, X, FileText, Search, CheckCircle2, Plane, Cog, Globe, Lock
+  Menu, X, Globe, Lock
 } from 'lucide-react';
 import VisaCardResult from './VisaCardResult';
 import AdminRegisterModal from './AdminRegisterModal';
 
-// Vite environment variable with fallback
+// Vite environment variable with hardcoded Render fallback
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://visa-verification-backend.onrender.com';
 
 const slides = [
@@ -58,7 +58,7 @@ export default function VisaVerifier() {
     setErrorMsg('');
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/visa/verify`, { passcode });
+      const response = await axios.post(`${API_BASE_URL}/api/visa/verify`, { passcode: passcode.trim() });
       if (response.data.success) {
         setVisaData(response.data.data);
         setIsModalOpen(true);
