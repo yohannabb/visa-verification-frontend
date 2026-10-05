@@ -5,7 +5,8 @@ export default function VisaCardResult({ data, onClose }) {
   if (!data) return null;
 
   // 1. Get Live Backend URL dynamically from Netlify environment variable
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+// NEW / FIXED:
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://visa-verification-backend.onrender.com';
 
   // 2. Helper function to format image URLs safely
   const getImageUrl = (path, fallback = null) => {
