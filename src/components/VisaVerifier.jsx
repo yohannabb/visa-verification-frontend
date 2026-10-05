@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { 
   ChevronLeft, ChevronRight, ArrowRight, Phone, Mail, MapPin, 
-  Menu, X, FileText, Search, CheckCircle2, Plane, Cog, Globe, ArrowLeft, LogOut, Lock
+  Menu, X, FileText, Search, CheckCircle2, Plane, Cog, Globe, Lock
 } from 'lucide-react';
 import VisaCardResult from './VisaCardResult';
+import AdminRegisterModal from './AdminRegisterModal';
+
+// Vite environment variable with fallback
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://visa-verification-backend.onrender.com';
 
 const slides = [
   {
@@ -37,7 +41,7 @@ export default function VisaVerifier() {
   // Admin Auth & Modal States
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(!!localStorage.getItem('adminToken'));
-  const [adminCredentials, setAdminCredentials] = useState({ username: '', email: '', password: '' });
+  const [adminCredentials, setAdminCredentials] = useState({ email: '', password: '' });
   const [adminError, setAdminError] = useState('');
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -54,7 +58,7 @@ export default function VisaVerifier() {
     setErrorMsg('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/visa/verify', { passcode });
+      const response = await axios.post(`${API_BASE_URL}/api/visa/verify`, { passcode });
       if (response.data.success) {
         setVisaData(response.data.data);
         setIsModalOpen(true);
@@ -69,42 +73,16 @@ export default function VisaVerifier() {
   const handleAdminLogin = async (e) => {
     e.preventDefault();
     setAdminError('');
-
-    const inputVal = (adminCredentials.email || adminCredentials.username).trim();
-    const payload = {
-      username: inputVal,
-      email: inputVal,
-      identifier: inputVal,
-      password: adminCredentials.password.trim()
-    };
-
-    let res;
-    let loginSuccess = false;
-
-    // Route 1: Try /api/visa/admin/login
     try {
-      res = await axios.post('http://localhost:5000/api/visa/admin/login', payload);
-      loginSuccess = true;
-    } catch (err1) {
-      // Route 2: Fallback to /api/auth/login
-      try {
-        res = await axios.post('http://localhost:5000/api/auth/login', payload);
-        loginSuccess = true;
-      } catch (err2) {
-        setAdminError(
-          err2.response?.data?.message || 
-          err1.response?.data?.message || 
-          'Invalid admin credentials or server error.'
-        );
+      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, adminCredentials);
+      if (res.data.success) {
+        localStorage.setItem('adminToken', res.data.data.token);
+        setIsAdminLoggedIn(true);
+        setIsAdminLoginOpen(false);
+        setAdminCredentials({ email: '', password: '' });
       }
-    }
-
-    if (loginSuccess && res?.data) {
-      const token = res.data.token || res.data.data?.token || 'admin-authenticated-token';
-      localStorage.setItem('adminToken', token);
-      setIsAdminLoggedIn(true);
-      setIsAdminLoginOpen(false);
-      setAdminCredentials({ username: '', email: '', password: '' });
+    } catch (err) {
+      setAdminError(err.response?.data?.message || 'Invalid admin email or password.');
     }
   };
 
@@ -116,7 +94,7 @@ export default function VisaVerifier() {
 
   return (
     <div className="min-h-screen font-sans text-slate-800 bg-white">
-      {/* SECTION 1: HEADER & HERO SLIDER */}
+      {/* HEADER */}
       <header className="border-b border-slate-100 bg-white sticky top-0 z-40 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -183,7 +161,7 @@ export default function VisaVerifier() {
         )}
       </header>
 
-      {/* Hero Carousel */}
+      {/* HERO SLIDER */}
       <section id="home" className="relative bg-slate-100 overflow-hidden h-[480px] sm:h-[540px]">
         <div className="absolute inset-0 flex transition-transform duration-700 ease-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
           {slides.map((slide, idx) => (
@@ -194,7 +172,6 @@ export default function VisaVerifier() {
           ))}
         </div>
 
-        {/* Carousel Backdrop Card */}
         <div className="absolute inset-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center pointer-events-none">
           <div className="bg-white/85 backdrop-blur-md p-8 rounded-2xl max-w-md border border-white/40 shadow-xl pointer-events-auto">
             <h2 className="text-3xl font-bold text-blue-950 mb-1">{slides[currentSlide].title}</h2>
@@ -207,7 +184,6 @@ export default function VisaVerifier() {
           </div>
         </div>
 
-        {/* Slider Nav Buttons */}
         <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow flex items-center justify-center text-slate-800">
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -215,7 +191,6 @@ export default function VisaVerifier() {
           <ChevronRight className="w-5 h-5" />
         </button>
 
-        {/* Dots */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
           {slides.map((_, i) => (
             <button key={i} onClick={() => setCurrentSlide(i)} className={`h-2.5 rounded-full transition-all ${currentSlide === i ? 'w-8 bg-blue-700' : 'w-2.5 bg-white/70'}`} />
@@ -223,7 +198,7 @@ export default function VisaVerifier() {
         </div>
       </section>
 
-      {/* SECTION 2: OTP VERIFICATION FORM */}
+      {/* OTP FORM */}
       <section className="py-16 bg-slate-50 border-b border-slate-200">
         <div className="max-w-md mx-auto px-4">
           <div className="bg-white p-8 rounded-2xl shadow-lg border border-slate-100 text-center">
@@ -257,7 +232,7 @@ export default function VisaVerifier() {
         </div>
       </section>
 
-      {/* SECTION 3: LATEST NEWS */}
+      {/* LATEST NEWS */}
       <section id="media" className="py-16 bg-white">
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
@@ -301,152 +276,7 @@ export default function VisaVerifier() {
         </div>
       </section>
 
-      {/* SECTION 4: VISA INSTRUCTIONS */}
-      <section id="information" className="py-16 bg-slate-50">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-blue-950">Visa Instructions</h2>
-            <p className="text-xs text-slate-500 mt-1">Single Visit • Multiple Visit</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {[
-              { title: "Tourism Visa" },
-              { title: "Family Visit Visa" },
-              { title: "Government Visa" },
-              { title: "Business Visa" }
-            ].map((item, index) => (
-              <div key={index} className="bg-white p-6 rounded-2xl shadow-xs border border-slate-100">
-                <h3 className="text-lg font-bold text-blue-900 mb-3">{item.title}</h3>
-                <ul className="space-y-1.5 text-xs text-slate-600">
-                  <li><strong className="text-slate-800">Passport validity:</strong> No less than 6 months</li>
-                  <li><strong className="text-slate-800">Entry permit validity:</strong> 30 days from the date of issuance</li>
-                  <li><strong className="text-slate-800">Stay duration:</strong> No more than 90 days from the date of entry</li>
-                  <li><strong className="text-slate-800">Number of entries:</strong> Single entry</li>
-                  <li><strong className="text-slate-800">Prohibition:</strong> The visa holder is prohibited from working</li>
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 5: VISA APPLICATION PROCESS */}
-      <section className="py-16 bg-white">
-        <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center text-blue-950 mb-12">Visa Application Process</h2>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
-            {[
-              { icon: FileText, title: "Submit Application", desc: "Fill out the visa form and provide your passport information." },
-              { icon: Search, title: "Application Review", desc: "The Ministry of Interior reviews and verifies your details." },
-              { icon: CheckCircle2, title: "Visa Approval", desc: "Your visa will be issued after successful verification." },
-              { icon: Plane, title: "Travel to Kuwait", desc: "Present your visa and passport at the entry checkpoint." }
-            ].map((step, idx) => (
-              <div key={idx} className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs text-center flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full bg-blue-700 text-white flex items-center justify-center mb-4">
-                  <step.icon className="w-6 h-6" />
-                </div>
-                <h4 className="font-bold text-blue-950 text-sm mb-2">{step.title}</h4>
-                <p className="text-xs text-slate-500 leading-relaxed">{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 6: VISA PROCESSING TIMELINE */}
-      <section className="py-16 bg-blue-900 text-white">
-        <div className="max-w-4xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Visa Processing Timeline</h2>
-
-          <div className="relative border-l-2 border-blue-500/50 ml-4 sm:ml-1/2 space-y-10 pl-6">
-            <div className="relative">
-              <div className="absolute -left-[31px] top-1 w-3 h-3 rounded-full bg-white" />
-              <h4 className="font-bold text-base flex items-center gap-2">Application Submitted <FileText className="w-4 h-4" /></h4>
-              <p className="text-xs text-blue-200 mt-1">Your visa application has been received.</p>
-            </div>
-
-            <div className="relative">
-              <div className="absolute -left-[31px] top-1 w-3 h-3 rounded-full bg-white" />
-              <h4 className="font-bold text-base flex items-center gap-2">Document Verification <Search className="w-4 h-4" /></h4>
-              <p className="text-xs text-blue-200 mt-1">Documents are reviewed by the authorities.</p>
-            </div>
-
-            <div className="relative">
-              <div className="absolute -left-[31px] top-1 w-3 h-3 rounded-full bg-white" />
-              <h4 className="font-bold text-base flex items-center gap-2">Processing <Cog className="w-4 h-4" /></h4>
-              <p className="text-xs text-blue-200 mt-1">Your visa is currently under processing.</p>
-            </div>
-
-            <div className="relative">
-              <div className="absolute -left-[31px] top-1 w-3 h-3 rounded-full bg-white" />
-              <h4 className="font-bold text-base flex items-center gap-2 text-green-400">Visa Approved <CheckCircle2 className="w-4 h-4" /></h4>
-              <p className="text-xs text-blue-200 mt-1">Your visa has been approved successfully.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 7: EXECUTIVE STATEMENT & CARDS */}
-      <section id="about" className="py-16 bg-slate-50">
-        <div className="max-w-6xl mx-auto px-4 space-y-12">
-          {/* Executive Statement */}
-          <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-xs">
-            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mb-4">
-              "Your expertise will add value to the workplace and support ongoing progress."
-            </p>
-            <p className="font-bold text-blue-950 text-sm">Ahmed Al-Faisal</p>
-            <p className="text-xs text-slate-400">CEO</p>
-          </div>
-
-          {/* 3 Blue Feature Cards */}
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-blue-700 text-white p-6 rounded-2xl flex flex-col justify-between h-48">
-              <div>
-                <h4 className="font-bold text-base mb-2">Making a positive difference</h4>
-                <p className="text-xs text-blue-100 leading-relaxed">
-                  We are committed to finding new ways of operating more sustainably while supplying products essential for the global transition.
-                </p>
-              </div>
-              <a href="#" className="text-xs font-semibold flex items-center gap-1 hover:underline">Learn more <ArrowRight className="w-3.5 h-3.5" /></a>
-            </div>
-
-            <div className="bg-blue-700 text-white p-6 rounded-2xl flex flex-col justify-between h-48">
-              <div>
-                <h4 className="font-bold text-base mb-2">Over 135 years of resources</h4>
-                <p className="text-xs text-blue-100 leading-relaxed">
-                  Since 1885, we've played an essential role in improving living standards and facilitating economic growth.
-                </p>
-              </div>
-              <a href="#" className="text-xs font-semibold flex items-center gap-1 hover:underline">Learn more <ArrowRight className="w-3.5 h-3.5" /></a>
-            </div>
-
-            <div className="bg-blue-700 text-white p-6 rounded-2xl flex flex-col justify-between h-48">
-              <div>
-                <h4 className="font-bold text-base mb-2">Delivering for shareholders</h4>
-                <p className="text-xs text-blue-100 leading-relaxed">
-                  Over the last 12 months our teams have delivered strong and, in some cases, record production.
-                </p>
-              </div>
-              <a href="#" className="text-xs font-semibold flex items-center gap-1 hover:underline">Learn more <ArrowRight className="w-3.5 h-3.5" /></a>
-            </div>
-          </div>
-
-          {/* Call-to-action Banner */}
-          <div className="border-2 border-blue-700 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
-            <div>
-              <h3 className="text-2xl font-bold text-blue-950">Join Us Today</h3>
-              <p className="text-xs text-slate-500 mt-1">Partner with us to shape the future workforce of our nation.</p>
-            </div>
-            <button className="bg-blue-700 hover:bg-blue-800 text-white px-6 py-2.5 rounded-lg text-xs font-medium flex items-center gap-2 whitespace-nowrap">
-              Contact Us <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 8: FOOTER */}
+      {/* FOOTER */}
       <footer className="bg-blue-900 text-white pt-12 pb-6 border-t border-blue-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8 mb-8 text-xs">
@@ -529,17 +359,12 @@ export default function VisaVerifier() {
 
             <form onSubmit={handleAdminLogin} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Username or Email</label>
+                <label className="block text-slate-700 font-semibold mb-1">Email</label>
                 <input 
                   type="text" 
-                  value={adminCredentials.email || adminCredentials.username} 
-                  onChange={(e) => setAdminCredentials({ 
-                    ...adminCredentials, 
-                    email: e.target.value, 
-                    username: e.target.value 
-                  })} 
-                  placeholder="admin or admin@gmail.com"
-                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none text-slate-800" 
+                  value={adminCredentials.email} 
+                  onChange={(e) => setAdminCredentials({ ...adminCredentials, email: e.target.value })} 
+                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none" 
                   required 
                 />
               </div>
@@ -549,8 +374,7 @@ export default function VisaVerifier() {
                   type="password" 
                   value={adminCredentials.password} 
                   onChange={(e) => setAdminCredentials({ ...adminCredentials, password: e.target.value })} 
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none text-slate-800" 
+                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none" 
                   required 
                 />
               </div>
@@ -572,187 +396,6 @@ export default function VisaVerifier() {
           onLogout={handleAdminLogout} 
         />
       )}
-    </div>
-  );
-}
-
-{/* ADMIN REGISTER FORM COMPONENT */}
-function AdminRegisterModal({ onClose, onLogout }) {
-  const [formData, setFormData] = useState({
-    fullName: 'MABRE SLESHI MULUYE',
-    nationality: 'ETHIOPIA',
-    passcode: '1234',
-    visaNumber: '598080',
-    passportNumber: 'EQ1723007',
-    visaType: 'B - Private Sector Work Visa',
-    occupation: 'Sell officer',
-    gender: 'Male',
-    birthDate: '',
-    issueDate: '',
-    expiryDate: ''
-  });
-
-  const [files, setFiles] = useState({
-    photo: null,
-    attachedDoc: null,
-    visaCardImage: null
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleFileChange = (e) => {
-    setFiles({ ...files, [e.target.name]: e.target.files[0] });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage({ type: '', text: '' });
-
-    const submitData = new FormData();
-    Object.keys(formData).forEach((key) => submitData.append(key, formData[key]));
-    if (files.photo) submitData.append('photo', files.photo);
-    if (files.attachedDoc) submitData.append('attachedDoc', files.attachedDoc);
-    if (files.visaCardImage) submitData.append('visaCardImage', files.visaCardImage);
-
-    try {
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.post('http://localhost:5000/api/visa/register', submitData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (res.data.success) {
-        setMessage({ type: 'success', text: 'Visa Record Registered Successfully!' });
-      }
-    } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err.response?.data?.message || 'Error registering visa record.'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-8 my-8 border border-slate-100 relative max-h-[90vh] overflow-y-auto">
-        {/* Header navigation links */}
-        <div className="flex items-center justify-between mb-6 border-b pb-4 text-xs font-semibold">
-          <button onClick={onClose} className="text-blue-900 hover:underline flex items-center gap-1">
-            <ArrowLeft className="w-4 h-4" /> ← Back to Home
-          </button>
-          <button onClick={onLogout} className="text-red-600 hover:underline flex items-center gap-1">
-            <LogOut className="w-4 h-4" /> Logout
-          </button>
-        </div>
-
-        <h2 className="text-2xl font-bold text-blue-950 text-center mb-6">Register Visa Record</h2>
-
-        {message.text && (
-          <div className={`p-3 text-xs rounded-lg mb-4 text-center ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-            {message.text}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          {/* Full Name */}
-          <div>
-            <label className="block text-slate-700 font-semibold mb-1">Full Name</label>
-            <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-blue-600" />
-          </div>
-
-          {/* Nationality & Access Code */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Nationality</label>
-              <input type="text" name="nationality" value={formData.nationality} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-blue-600" />
-            </div>
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Access Code / OTP (Passcode)</label>
-              <input type="text" name="passcode" value={formData.passcode} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-blue-600" />
-            </div>
-          </div>
-
-          {/* Visa Number & Passport Number */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Visa Number</label>
-              <input type="text" name="visaNumber" value={formData.visaNumber} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-blue-600" />
-            </div>
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Passport Number</label>
-              <input type="text" name="passportNumber" value={formData.passportNumber} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-blue-600" />
-            </div>
-          </div>
-
-          {/* Visa Type & Occupation */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Visa Type</label>
-              <input type="text" name="visaType" value={formData.visaType} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-blue-600" />
-            </div>
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Occupation</label>
-              <input type="text" name="occupation" value={formData.occupation} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-blue-600" />
-            </div>
-          </div>
-
-          {/* Gender & Birth Date */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Gender</label>
-              <select name="gender" value={formData.gender} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-blue-600">
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Birth Date</label>
-              <input type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-blue-600" />
-            </div>
-          </div>
-
-          {/* Issue Date & Expiry Date */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Issue Date</label>
-              <input type="date" name="issueDate" value={formData.issueDate} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-blue-600" />
-            </div>
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Expiry Date</label>
-              <input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-blue-600" />
-            </div>
-          </div>
-
-          {/* Upload Inputs */}
-          <div>
-            <label className="block text-slate-700 font-semibold mb-1">Applicant Photo Image (Upload from Device)</label>
-            <input type="file" name="photo" onChange={handleFileChange} accept="image/*" className="w-full p-1.5 border rounded-lg border-slate-300" />
-          </div>
-
-          <div>
-            <label className="block text-slate-700 font-semibold mb-1">Attached Document Image (Upload from Device)</label>
-            <input type="file" name="attachedDoc" onChange={handleFileChange} accept="image/*" className="w-full p-1.5 border rounded-lg border-slate-300" />
-          </div>
-
-          <div>
-            <label className="block text-slate-700 font-semibold mb-1">Bottom Visa Card Graphic Image (Upload from Device)</label>
-            <input type="file" name="visaCardImage" onChange={handleFileChange} accept="image/*" className="w-full p-1.5 border rounded-lg border-slate-300" />
-          </div>
-
-          <button type="submit" disabled={loading} className="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-3 rounded-lg shadow mt-6 transition-colors">
-            {loading ? 'Saving...' : 'Save Visa Record'}
-          </button>
-        </form>
-      </div>
     </div>
   );
 }

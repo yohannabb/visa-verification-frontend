@@ -2,56 +2,50 @@ import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { ArrowLeft, LogOut, X, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-const INITIAL_FORM_STATE = {
-  fullName: 'MABRE SLESHI MULUYE',
-  nationality: 'ETHIOPIA',
-  passcode: '1234',
-  visaNumber: '598080',
-  passportNumber: 'EQ1723007',
-  visaType: 'B - Private Sector Work Visa',
-  occupation: 'Sell officer',
-  gender: 'Male',
-  birthDate: '',
-  issueDate: '',
-  expiryDate: ''
-};
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://visa-verification-backend.onrender.com';
 
 export default function AdminRegisterModal({ onClose, onLogout }) {
-  const [formData, setFormData] = useState(INITIAL_FORM_STATE);
-  const [files, setFiles] = useState({
-    photo: null,
-    attachedDoc: null,
-    visaCardImage: null
+  const [formData, setFormData] = useState({
+    fullName: '',
+    passportNumber: '',
+    nationality: '',
+    country: '',
+    passcode: '',
+    issueDate: '',
+    agency: '',
   });
 
+  const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Refs to manually clear file input elements after submission
-  const photoInputRef = useRef(null);
-  const docInputRef = useRef(null);
-  const cardInputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e) => {
-    const { name, files: selectedFiles } = e.target;
-    if (selectedFiles && selectedFiles[0]) {
-      setFiles((prev) => ({ ...prev, [name]: selectedFiles[0] }));
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage({ type: 'error', text: 'Image size must be less than 5MB.' });
+        return;
+      }
+      setPhoto(file);
+      setPhotoPreview(URL.createObjectURL(file));
+      setMessage({ type: '', text: '' });
     }
   };
 
-  const resetForm = () => {
-    setFormData(INITIAL_FORM_STATE);
-    setFiles({ photo: null, attachedDoc: null, visaCardImage: null });
-    if (photoInputRef.current) photoInputRef.current.value = '';
-    if (docInputRef.current) docInputRef.current.value = '';
-    if (cardInputRef.current) cardInputRef.current.value = '';
+  const handleRemovePhoto = () => {
+    setPhoto(null);
+    setPhotoPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -59,25 +53,52 @@ export default function AdminRegisterModal({ onClose, onLogout }) {
     setLoading(true);
     setMessage({ type: '', text: '' });
 
-    const submitData = new FormData();
-    Object.keys(formData).forEach((key) => submitData.append(key, formData[key]));
-    if (files.photo) submitData.append('photo', files.photo);
-    if (files.attachedDoc) submitData.append('attachedDoc', files.attachedDoc);
-    if (files.visaCardImage) submitData.append('visaCardImage', files.visaCardImage);
+    const adminToken = localStorage.getItem('adminToken');
+
+    if (!adminToken) {
+      setMessage({ type: 'error', text: 'Admin session expired. Please log in again.' });
+      setLoading(false);
+      return;
+    }
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/visa/register`, submitData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const submissionData = new FormData();
+      Object.keys(formData).forEach((key) => {
+        submissionData.append(key, formData[key]);
       });
 
-      if (res.data.success || res.status === 200 || res.status === 201) {
-        setMessage({ type: 'success', text: 'Visa Record Registered Successfully!' });
-        resetForm();
+      if (photo) {
+        submissionData.append('photo', photo);
+      }
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/visa/register`,
+        submissionData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${adminToken}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setMessage({ type: 'success', text: 'Visa record registered successfully!' });
+        setFormData({
+          fullName: '',
+          passportNumber: '',
+          nationality: '',
+          country: '',
+          passcode: '',
+          issueDate: '',
+          agency: '',
+        });
+        handleRemovePhoto();
       }
     } catch (err) {
       setMessage({
         type: 'error',
-        text: err.response?.data?.message || 'Error registering visa record. Please try again.'
+        text: err.response?.data?.message || 'Failed to register visa record. Please try again.',
       });
     } finally {
       setLoading(false);
@@ -85,262 +106,211 @@ export default function AdminRegisterModal({ onClose, onLogout }) {
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 sm:p-8 my-8 border border-slate-100 relative max-h-[90vh] overflow-y-auto">
-        {/* Modal Close Icon */}
-        <button 
-          onClick={onClose} 
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* Header navigation links */}
-        <div className="flex items-center justify-between mb-6 border-b pb-4 text-xs font-semibold pr-6">
-          <button 
-            onClick={onClose} 
-            className="text-blue-900 hover:text-blue-700 transition-colors flex items-center gap-1.5"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Home
-          </button>
-          
-          {onLogout && (
-            <button 
-              onClick={onLogout} 
-              className="text-red-600 hover:text-red-700 transition-colors flex items-center gap-1.5"
+    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-100 overflow-hidden my-8">
+        {/* Header */}
+        <div className="bg-blue-900 text-white px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="p-1 rounded-lg hover:bg-blue-800 transition-colors"
+              title="Back"
             >
-              <LogOut className="w-4 h-4" /> Logout
+              <ArrowLeft className="w-5 h-5" />
             </button>
-          )}
+            <div>
+              <h2 className="text-lg font-bold">Register New Visa Record</h2>
+              <p className="text-xs text-blue-200">Admin Portal</p>
+            </div>
+          </div>
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shadow-xs"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Logout
+          </button>
         </div>
 
-        <h2 className="text-2xl font-bold text-slate-900 text-center mb-6">
-          Register Visa Record
-        </h2>
+        {/* Form Container */}
+        <div className="p-6">
+          {message.text && (
+            <div
+              className={`mb-6 p-4 rounded-xl flex items-center gap-3 text-sm ${
+                message.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                  : 'bg-red-50 text-red-800 border border-red-200'
+              }`}
+            >
+              {message.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
+              ) : (
+                <AlertCircle className="w-5 h-5 shrink-0 text-red-600" />
+              )}
+              <span>{message.text}</span>
+            </div>
+          )}
 
-        {/* Alert Message */}
-        {message.text && (
-          <div className={`p-3 text-xs rounded-lg mb-6 flex items-center gap-2 ${
-            message.type === 'success' 
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}>
-            {message.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            ) : (
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-            )}
-            <span>{message.text}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          {/* Full Name */}
-          <div>
-            <label className="block text-slate-700 font-semibold mb-1">Full Name</label>
-            <input 
-              type="text" 
-              name="fullName" 
-              value={formData.fullName} 
-              onChange={handleChange} 
-              required 
-              className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all" 
-            />
-          </div>
-
-          {/* Nationality & Access Code */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            {/* Photo Upload Area */}
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Nationality</label>
-              <input 
-                type="text" 
-                name="nationality" 
-                value={formData.nationality} 
-                onChange={handleChange} 
-                required 
-                className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all" 
+              <label className="block font-semibold text-slate-700 mb-2">
+                Applicant Photo
+              </label>
+              {photoPreview ? (
+                <div className="relative w-28 h-36 rounded-lg overflow-hidden border-2 border-slate-200 shadow-xs">
+                  <img
+                    src={photoPreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white p-1 rounded-full transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-4 text-center cursor-pointer transition-colors bg-slate-50 hover:bg-blue-50/30 flex flex-col items-center justify-center gap-1"
+                >
+                  <Upload className="w-6 h-6 text-slate-400" />
+                  <span className="font-semibold text-slate-600">Click to upload photo</span>
+                  <span className="text-[10px] text-slate-400">PNG, JPG up to 5MB</span>
+                </div>
+              )}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoChange}
+                accept="image/*"
+                className="hidden"
               />
             </div>
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Access Code / OTP (Passcode)</label>
-              <input 
-                type="text" 
-                name="passcode" 
-                value={formData.passcode} 
-                onChange={handleChange} 
-                required 
-                className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all" 
-              />
-            </div>
-          </div>
 
-          {/* Visa Number & Passport Number */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Visa Number</label>
-              <input 
-                type="text" 
-                name="visaNumber" 
-                value={formData.visaNumber} 
-                onChange={handleChange} 
-                required 
-                className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all" 
-              />
-            </div>
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Passport Number</label>
-              <input 
-                type="text" 
-                name="passportNumber" 
-                value={formData.passportNumber} 
-                onChange={handleChange} 
-                required 
-                className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all" 
-              />
-            </div>
-          </div>
+            {/* Input Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Full Name</label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                  placeholder="e.g. Abebe Bikila"
+                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  required
+                />
+              </div>
 
-          {/* Visa Type & Occupation */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Visa Type</label>
-              <input 
-                type="text" 
-                name="visaType" 
-                value={formData.visaType} 
-                onChange={handleChange} 
-                className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all" 
-              />
-            </div>
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Occupation</label>
-              <input 
-                type="text" 
-                name="occupation" 
-                value={formData.occupation} 
-                onChange={handleChange} 
-                className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all" 
-              />
-            </div>
-          </div>
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Passport Number</label>
+                <input
+                  type="text"
+                  name="passportNumber"
+                  value={formData.passportNumber}
+                  onChange={handleInputChange}
+                  placeholder="e.g. EP123456"
+                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  required
+                />
+              </div>
 
-          {/* Gender & Birth Date */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Gender</label>
-              <select 
-                name="gender" 
-                value={formData.gender} 
-                onChange={handleChange} 
-                className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all bg-white"
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Nationality</label>
+                <input
+                  type="text"
+                  name="nationality"
+                  value={formData.nationality}
+                  onChange={handleInputChange}
+                  placeholder="e.g. Ethiopian"
+                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Destination Country</label>
+                <input
+                  type="text"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleInputChange}
+                  placeholder="e.g. Saudi Arabia"
+                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">OTP Passcode (6 digits)</label>
+                <input
+                  type="text"
+                  name="passcode"
+                  value={formData.passcode}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 849201"
+                  maxLength={6}
+                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Issue Date</label>
+                <input
+                  type="date"
+                  name="issueDate"
+                  value={formData.issueDate}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-slate-700 font-semibold mb-1">Agency Name</label>
+                <input
+                  type="text"
+                  name="agency"
+                  value={formData.agency}
+                  onChange={handleInputChange}
+                  placeholder="e.g. Ethio-Abroad Employment Agency"
+                  className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 mt-6">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
               >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-              </select>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-5 py-2 bg-blue-900 hover:bg-blue-800 text-white rounded-lg transition-colors font-medium flex items-center gap-2 disabled:opacity-50 shadow-md"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Registering...
+                  </>
+                ) : (
+                  'Register Visa Record'
+                )}
+              </button>
             </div>
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Birth Date</label>
-              <input 
-                type="date" 
-                name="birthDate" 
-                value={formData.birthDate} 
-                onChange={handleChange} 
-                className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all" 
-              />
-            </div>
-          </div>
-
-          {/* Issue Date & Expiry Date */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Issue Date</label>
-              <input 
-                type="date" 
-                name="issueDate" 
-                value={formData.issueDate} 
-                onChange={handleChange} 
-                className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all" 
-              />
-            </div>
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">Expiry Date</label>
-              <input 
-                type="date" 
-                name="expiryDate" 
-                value={formData.expiryDate} 
-                onChange={handleChange} 
-                className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all" 
-              />
-            </div>
-          </div>
-
-          {/* Upload Section */}
-          <div className="space-y-3 pt-2">
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">
-                Applicant Photo Image (Upload from Device)
-              </label>
-              <input 
-                ref={photoInputRef}
-                type="file" 
-                name="photo" 
-                onChange={handleFileChange} 
-                accept="image/*" 
-                className="w-full text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border rounded-lg border-slate-300 p-1" 
-              />
-            </div>
-
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">
-                Attached Document Image (Upload from Device)
-              </label>
-              <input 
-                ref={docInputRef}
-                type="file" 
-                name="attachedDoc" 
-                onChange={handleFileChange} 
-                accept="image/*" 
-                className="w-full text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border rounded-lg border-slate-300 p-1" 
-              />
-            </div>
-
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">
-                Bottom Visa Card Graphic Image (Upload from Device)
-              </label>
-              <input 
-                ref={cardInputRef}
-                type="file" 
-                name="visaCardImage" 
-                onChange={handleFileChange} 
-                accept="image/*" 
-                className="w-full text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border rounded-lg border-slate-300 p-1" 
-              />
-            </div>
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="w-full bg-blue-700 hover:bg-blue-800 disabled:bg-blue-400 text-white font-medium py-3 rounded-lg shadow-sm transition-colors mt-6 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed text-xs sm:text-sm"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4" />
-                Save Visa Record
-              </>
-            )}
-          </button>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
