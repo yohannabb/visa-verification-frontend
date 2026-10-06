@@ -601,7 +601,7 @@ export default function VisaVerifier() {
               <div>
                 <label className="block text-slate-700 font-semibold mb-1">Email</label>
                 <input 
-                  type="email" 
+                  type="txt" 
                   value={adminCredentials.email} 
                   onChange={(e) => setAdminCredentials({ ...adminCredentials, email: e.target.value })} 
                   className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-[#1d4ed8] focus:outline-none" 
