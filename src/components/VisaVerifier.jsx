@@ -7,7 +7,6 @@ import {
 import VisaCardResult from './VisaCardResult';
 import AdminRegisterModal from './AdminRegisterModal';
 
-// Vite environment variable with hardcoded Render fallback and trailing slash cleanup
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://visa-verification-backend.onrender.com').replace(/\/+$/, '');
 
 const slides = [
@@ -100,7 +99,7 @@ export default function VisaVerifier() {
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminRegisterOpen, setIsAdminRegisterOpen] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(!!localStorage.getItem('adminToken'));
-  const [adminCredentials, setAdminCredentials] = useState({ email: '', password: '' });
+  const [adminCredentials, setAdminCredentials] = useState({ identifier: '', password: '' });
   const [adminError, setAdminError] = useState('');
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -133,16 +132,20 @@ export default function VisaVerifier() {
     e.preventDefault();
     setAdminError('');
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, adminCredentials);
+      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+        username: adminCredentials.identifier,
+        email: adminCredentials.identifier,
+        password: adminCredentials.password
+      });
       if (res.data.success) {
         localStorage.setItem('adminToken', res.data.data.token);
         setIsAdminLoggedIn(true);
         setIsAdminLoginOpen(false);
         setIsAdminRegisterOpen(true);
-        setAdminCredentials({ email: '', password: '' });
+        setAdminCredentials({ identifier: '', password: '' });
       }
     } catch (err) {
-      setAdminError(err.response?.data?.message || 'Invalid admin email or password.');
+      setAdminError(err.response?.data?.message || 'Invalid credentials.');
     }
   };
 
@@ -599,11 +602,12 @@ export default function VisaVerifier() {
 
             <form onSubmit={handleAdminLogin} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Email</label>
+                <label className="block text-slate-700 font-semibold mb-1">Username or Email</label>
                 <input 
                   type="text" 
-                  value={adminCredentials.email} 
-                  onChange={(e) => setAdminCredentials({ ...adminCredentials, email: e.target.value })} 
+                  placeholder="Enter username or email"
+                  value={adminCredentials.identifier} 
+                  onChange={(e) => setAdminCredentials({ ...adminCredentials, identifier: e.target.value })} 
                   className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:ring-2 focus:ring-[#1d4ed8] focus:outline-none" 
                   required 
                 />
