@@ -95,7 +95,7 @@ export default function VisaVerifier() {
   const [visaData, setVisaData] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Admin Auth & Modal States
+  // Admin Auth & Portal View States
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminRegisterOpen, setIsAdminRegisterOpen] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(!!localStorage.getItem('adminToken'));
@@ -155,6 +155,16 @@ export default function VisaVerifier() {
     setIsAdminLoginOpen(false);
     setIsAdminRegisterOpen(false);
   };
+
+  // IF ADMIN IS LOGGED IN & REGISTER VIEW IS ACTIVE, RENDER REGISTRATION FORM PAGE
+  if (isAdminLoggedIn && isAdminRegisterOpen) {
+    return (
+      <AdminRegisterModal 
+        onClose={() => setIsAdminRegisterOpen(false)} 
+        onLogout={handleAdminLogout} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen font-sans text-slate-800 bg-[#f8fafc]">
@@ -631,14 +641,6 @@ export default function VisaVerifier() {
             </form>
           </div>
         </div>
-      )}
-
-      {/* ADMIN REGISTRATION FORM / MODAL */}
-      {isAdminLoggedIn && isAdminRegisterOpen && (
-        <AdminRegisterModal 
-          onClose={() => setIsAdminRegisterOpen(false)} 
-          onLogout={handleAdminLogout} 
-        />
       )}
     </div>
   );

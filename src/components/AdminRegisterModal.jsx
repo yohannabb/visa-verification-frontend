@@ -90,14 +90,14 @@ export default function AdminRegisterModal({ onClose, onLogout }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white my-8 w-full max-w-2xl p-6 sm:p-8 rounded-lg shadow-2xl border border-slate-100 relative">
+    <div className="min-h-screen bg-[#f8fafc] py-8 px-4">
+      <div className="max-w-2xl mx-auto bg-white p-6 sm:p-10 rounded-xl shadow-sm border border-slate-200">
         {/* Header Navigation */}
         <div className="flex justify-between items-center mb-6 text-sm font-semibold">
           <button 
             type="button" 
             onClick={onClose} 
-            className="text-slate-600 hover:text-slate-900 flex items-center gap-1 transition-colors"
+            className="text-[#1d4ed8] hover:underline flex items-center gap-1 transition-colors"
           >
             &larr; Back to Home
           </button>
@@ -110,7 +110,7 @@ export default function AdminRegisterModal({ onClose, onLogout }) {
           </button>
         </div>
 
-        <h2 className="text-3xl font-extrabold text-center text-[#1d3557] mb-8">
+        <h2 className="text-3xl font-extrabold text-center text-[#1e3a8a] mb-8">
           Register Visa Record
         </h2>
 
@@ -124,7 +124,7 @@ export default function AdminRegisterModal({ onClose, onLogout }) {
           </div>
         )}
 
-        <form onSubmit={handleRegisterSubmit} className="space-y-4 text-sm">
+        <form onSubmit={handleRegisterSubmit} className="space-y-5 text-sm">
           {/* Full Name */}
           <div>
             <label className="block text-slate-700 font-semibold mb-1">Full Name</label>
@@ -134,7 +134,7 @@ export default function AdminRegisterModal({ onClose, onLogout }) {
               placeholder="MABRE SLESHI MULUYE"
               value={formData.fullName}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800 uppercase"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800"
               required
             />
           </div>
@@ -149,7 +149,7 @@ export default function AdminRegisterModal({ onClose, onLogout }) {
                 placeholder="ETHIOPIA"
                 value={formData.nationality}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800 uppercase"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800"
                 required
               />
             </div>
@@ -189,7 +189,7 @@ export default function AdminRegisterModal({ onClose, onLogout }) {
                 placeholder="EQ1723007"
                 value={formData.passportNumber}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800 uppercase"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800"
                 required
               />
             </div>
@@ -281,13 +281,15 @@ export default function AdminRegisterModal({ onClose, onLogout }) {
             <label className="block text-slate-700 font-semibold mb-1">
               Applicant Photo Image (Upload from Device)
             </label>
-            <input
-              type="file"
-              name="applicantPhoto"
-              onChange={handleFileChange}
-              accept="image/*"
-              className="w-full border border-slate-300 rounded-md p-2 text-xs file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-            />
+            <div className="border border-slate-300 rounded-md p-1.5 bg-white">
+              <input
+                type="file"
+                name="applicantPhoto"
+                onChange={handleFileChange}
+                accept="image/*"
+                className="w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+              />
+            </div>
           </div>
 
           {/* File Upload 2: Attached Document */}
@@ -295,13 +297,15 @@ export default function AdminRegisterModal({ onClose, onLogout }) {
             <label className="block text-slate-700 font-semibold mb-1">
               Attached Document Image (Upload from Device)
             </label>
-            <input
-              type="file"
-              name="attachedDocument"
-              onChange={handleFileChange}
-              accept="image/*"
-              className="w-full border border-slate-300 rounded-md p-2 text-xs file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-            />
+            <div className="border border-slate-300 rounded-md p-1.5 bg-white">
+              <input
+                type="file"
+                name="attachedDocument"
+                onChange={handleFileChange}
+                accept="image/*"
+                className="w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+              />
+            </div>
           </div>
 
           {/* File Upload 3: Bottom Visa Card Graphic */}
@@ -309,13 +313,15 @@ export default function AdminRegisterModal({ onClose, onLogout }) {
             <label className="block text-slate-700 font-semibold mb-1">
               Bottom Visa Card Graphic Image (Upload from Device)
             </label>
-            <input
-              type="file"
-              name="bottomVisaGraphic"
-              onChange={handleFileChange}
-              accept="image/*"
-              className="w-full border border-slate-300 rounded-md p-2 text-xs file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-            />
+            <div className="border border-slate-300 rounded-md p-1.5 bg-white">
+              <input
+                type="file"
+                name="bottomVisaGraphic"
+                onChange={handleFileChange}
+                accept="image/*"
+                className="w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+              />
+            </div>
           </div>
 
           {/* Submit Button */}
