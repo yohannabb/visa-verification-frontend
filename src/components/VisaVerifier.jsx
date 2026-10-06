@@ -7,8 +7,8 @@ import {
 import VisaCardResult from './VisaCardResult';
 import AdminRegisterModal from './AdminRegisterModal';
 
-// Vite environment variable with hardcoded Render fallback
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://visa-verification-backend.onrender.com';
+// Vite environment variable with hardcoded Render fallback and trailing slash cleanup
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://visa-verification-backend.onrender.com').replace(/\/+$/, '');
 
 const slides = [
   {
@@ -40,6 +40,7 @@ export default function VisaVerifier() {
 
   // Admin Auth & Modal States
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+  const [isAdminRegisterOpen, setIsAdminRegisterOpen] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(!!localStorage.getItem('adminToken'));
   const [adminCredentials, setAdminCredentials] = useState({ email: '', password: '' });
   const [adminError, setAdminError] = useState('');
@@ -79,6 +80,7 @@ export default function VisaVerifier() {
         localStorage.setItem('adminToken', res.data.data.token);
         setIsAdminLoggedIn(true);
         setIsAdminLoginOpen(false);
+        setIsAdminRegisterOpen(true);
         setAdminCredentials({ email: '', password: '' });
       }
     } catch (err) {
@@ -90,6 +92,7 @@ export default function VisaVerifier() {
     localStorage.removeItem('adminToken');
     setIsAdminLoggedIn(false);
     setIsAdminLoginOpen(false);
+    setIsAdminRegisterOpen(false);
   };
 
   return (
@@ -114,12 +117,20 @@ export default function VisaVerifier() {
             <a href="#information" className="hover:text-blue-700 transition-colors">Information</a>
             <a href="#media" className="hover:text-blue-700 transition-colors">Media</a>
             {isAdminLoggedIn ? (
-              <button 
-                onClick={handleAdminLogout} 
-                className="bg-red-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors shadow-xs"
-              >
-                Logout
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsAdminRegisterOpen(true)} 
+                  className="bg-blue-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-800 transition-colors shadow-xs"
+                >
+                  Dashboard
+                </button>
+                <button 
+                  onClick={handleAdminLogout} 
+                  className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors shadow-xs"
+                >
+                  Logout
+                </button>
+              </div>
             ) : (
               <button 
                 onClick={() => setIsAdminLoginOpen(true)} 
@@ -143,12 +154,20 @@ export default function VisaVerifier() {
             <a href="#information">Information</a>
             <a href="#media">Media</a>
             {isAdminLoggedIn ? (
-              <button 
-                onClick={() => { setMobileMenuOpen(false); handleAdminLogout(); }} 
-                className="bg-red-600 text-white text-left px-3 py-2 rounded-md text-xs font-semibold w-full"
-              >
-                Logout
-              </button>
+              <div className="flex flex-col gap-2">
+                <button 
+                  onClick={() => { setMobileMenuOpen(false); setIsAdminRegisterOpen(true); }} 
+                  className="bg-blue-900 text-white text-left px-3 py-2 rounded-md text-xs font-semibold w-full"
+                >
+                  Dashboard
+                </button>
+                <button 
+                  onClick={() => { setMobileMenuOpen(false); handleAdminLogout(); }} 
+                  className="bg-red-600 text-white text-left px-3 py-2 rounded-md text-xs font-semibold w-full"
+                >
+                  Logout
+                </button>
+              </div>
             ) : (
               <button 
                 onClick={() => { setMobileMenuOpen(false); setIsAdminLoginOpen(true); }} 
@@ -390,9 +409,9 @@ export default function VisaVerifier() {
       )}
 
       {/* ADMIN REGISTRATION MODAL */}
-      {isAdminLoggedIn && (
+      {isAdminLoggedIn && isAdminRegisterOpen && (
         <AdminRegisterModal 
-          onClose={() => setIsAdminLoggedIn(false)} 
+          onClose={() => setIsAdminRegisterOpen(false)} 
           onLogout={handleAdminLogout} 
         />
       )}
