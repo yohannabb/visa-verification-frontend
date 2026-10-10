@@ -132,12 +132,16 @@ export default function VisaVerifier() {
     e.preventDefault();
     setAdminError('');
     try {
-      // FIXED: Pointing to /api/visa/admin/login instead of /api/auth/login
-      const res = await axios.post(`${API_BASE_URL}/api/visa/admin/login`, {
+      // STRICTLY targeting /api/visa/admin/login
+      const loginEndpoint = `${API_BASE_URL}/api/visa/admin/login`;
+      console.log('Sending login request to:', loginEndpoint);
+
+      const res = await axios.post(loginEndpoint, {
         username: adminCredentials.identifier,
         email: adminCredentials.identifier,
         password: adminCredentials.password
       });
+
       if (res.data.success) {
         localStorage.setItem('adminToken', res.data.data.token);
         setIsAdminLoggedIn(true);
@@ -146,7 +150,8 @@ export default function VisaVerifier() {
         setAdminCredentials({ identifier: '', password: '' });
       }
     } catch (err) {
-      setAdminError(err.response?.data?.message || 'Invalid credentials.');
+      console.error('Login error details:', err.response || err);
+      setAdminError(err.response?.data?.message || 'Invalid credentials or network error.');
     }
   };
 
