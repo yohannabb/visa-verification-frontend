@@ -132,7 +132,8 @@ export default function VisaVerifier() {
     e.preventDefault();
     setAdminError('');
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+      // FIXED: Pointing to /api/visa/admin/login instead of /api/auth/login
+      const res = await axios.post(`${API_BASE_URL}/api/visa/admin/login`, {
         username: adminCredentials.identifier,
         email: adminCredentials.identifier,
         password: adminCredentials.password
